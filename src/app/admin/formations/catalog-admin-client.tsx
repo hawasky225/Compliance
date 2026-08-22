@@ -49,19 +49,24 @@ export default function CatalogAdminClient({ courses, schemes }:{ courses:Course
 
     <div className="catalog-toolbar"><div><h2>Catalogue</h2><p>{courses.length} formation(s) configurée(s)</p></div><div className="catalog-filters"><span className="soft-badge">{courses.filter(c=>c.published).length} publiées</span><span className="soft-badge">{courses.filter(c=>!c.published).length} brouillons</span></div></div>
 
-    <div className="premium-course-list">{courses.map(course=><article className="premium-course-card" key={course.id}>
-      <div className="course-card-head"><div><div className={`status-dot ${course.published?"live":"draft"}`}/><div><small>{course.published?"PUBLIÉ":"BROUILLON"}</small><h3>{course.title}</h3></div></div><button disabled={busy} className="outline-btn" onClick={()=>run(()=>api(`/api/admin/courses/${course.id}`,{method:"PATCH",body:JSON.stringify({published:!course.published})}))}>{course.published?"Dépublier":"Publier"}</button></div>
-      <p>{course.description || "Aucune description renseignée."}</p>
-      <div className="course-metadata"><span>◷ {course.durationMinutes} min</span><span>◇ {course.level}</span><span>▣ {course.assessments.length} examen(s)</span><span>◎ {course.assessments.reduce((s,a)=>s+a._count.attempts,0)} tentative(s)</span></div>
+    <div className="premium-course-list">
+      {courses.map(course=><article className="premium-course-card" key={course.id}>
+        <div className="course-card-head"><div><div className={`status-dot ${course.published?"live":"draft"}`}/><div><small>{course.published?"PUBLIÉ":"BROUILLON"}</small><h3>{course.title}</h3></div></div><button disabled={busy} className="outline-btn" onClick={()=>run(()=>api(`/api/admin/courses/${course.id}`,{method:"PATCH",body:JSON.stringify({published:!course.published})}))}>{course.published?"Dépublier":"Publier"}</button></div>
+        <p>{course.description || "Aucune description renseignée."}</p>
+        <div className="course-metadata"><span>◷ {course.durationMinutes} min</span><span>◇ {course.level}</span><span>▣ {course.assessments.length} examen(s)</span><span>◎ {course.assessments.reduce((s,a)=>s+a._count.attempts,0)} tentative(s)</span></div>
 
-      <details className="admin-details"><summary>Modifier les informations</summary><form className="premium-form compact-form" onSubmit={async e=>{e.preventDefault();const form=e.currentTarget;const body=Object.fromEntries(new FormData(form).entries());await run(()=>api(`/api/admin/courses/${course.id}`,{method:"PATCH",body:JSON.stringify({...body,durationMinutes:Number(body.durationMinutes)})}))}}><label><span>Titre</span><input name="title" defaultValue={course.title}/></label><label><span>Niveau</span><input name="level" defaultValue={course.level}/></label><label><span>Durée</span><input name="durationMinutes" type="number" min="1" defaultValue={course.durationMinutes}/></label><label className="span-2"><span>Description</span><textarea name="description" defaultValue={course.description||""}/></label><button className="primary-btn" disabled={busy}>Enregistrer</button></form></details>
+        <details className="admin-details"><summary>Modifier les informations</summary><form className="premium-form compact-form" onSubmit={async e=>{e.preventDefault();const form=e.currentTarget;const body=Object.fromEntries(new FormData(form).entries());await run(()=>api(`/api/admin/courses/${course.id}`,{method:"PATCH",body:JSON.stringify({...body,durationMinutes:Number(body.durationMinutes)})}))}}><label><span>Titre</span><input name="title" defaultValue={course.title}/></label><label><span>Niveau</span><input name="level" defaultValue={course.level}/></label><label><span>Durée</span><input name="durationMinutes" type="number" min="1" defaultValue={course.durationMinutes}/></label><label className="span-2"><span>Description</span><textarea name="description" defaultValue={course.description||""}/></label><button className="primary-btn" disabled={busy}>Enregistrer</button></form></details>
 
-      <div className="exam-list">{course.assessments.map(a=><div className="exam-admin-card" key={a.id}><div className="exam-title-row"><div><span className={`status ${a.published?"success":"warning"}`}>{a.published?"Publié":"Brouillon"}</span><strong>{a.title}</strong><small>{a.questions.length} question(s) · seuil {a.passingScore}% · {a.maxAttempts} tentative(s) · {a.durationMinutes} min</small></div><button disabled={busy} className="mini-action" onClick={()=>run(()=>api(`/api/admin/assessments/${a.id}`,{method:"PATCH",body:JSON.stringify({published:!a.published})}))}>{a.published?"Masquer":"Publier"}</button></div>
-        <details className="question-bank"><summary>Banque de questions <b>{a.questions.length}</b></summary><div className="question-list">{a.questions.map((q,i)=><div className="question-admin-row" key={q.id}><span>{i+1}</span><div><strong>{q.prompt}</strong><small>{Array.isArray(q.options)?q.options.join(" · "):""}</small></div><button disabled={busy} className="danger-link" onClick={()=>run(()=>api(`/api/admin/questions/${q.id}`,{method:"DELETE"}))}>Supprimer</button></div>)}</div><QuestionForm assessmentId={a.id} busy={busy} run={run}/></details>
-      </div>)}
-      {course.assessments.length===0&&<div className="empty-inline">Aucun examen configuré pour cette formation.</div>}
-      <details className="admin-details"><summary>＋ Ajouter un examen</summary><ExamForm courseId={course.id} schemes={schemes} busy={busy} run={run}/></details>
-    </article>)}</div>
+        <div className="exam-list">
+          {course.assessments.map(a=><div className="exam-admin-card" key={a.id}>
+            <div className="exam-title-row"><div><span className={`status ${a.published?"success":"warning"}`}>{a.published?"Publié":"Brouillon"}</span><strong>{a.title}</strong><small>{a.questions.length} question(s) · seuil {a.passingScore}% · {a.maxAttempts} tentative(s) · {a.durationMinutes} min</small></div><button disabled={busy} className="mini-action" onClick={()=>run(()=>api(`/api/admin/assessments/${a.id}`,{method:"PATCH",body:JSON.stringify({published:!a.published})}))}>{a.published?"Masquer":"Publier"}</button></div>
+            <details className="question-bank"><summary>Banque de questions <b>{a.questions.length}</b></summary><div className="question-list">{a.questions.map((q,i)=><div className="question-admin-row" key={q.id}><span>{i+1}</span><div><strong>{q.prompt}</strong><small>{Array.isArray(q.options)?q.options.join(" · "):""}</small></div><button disabled={busy} className="danger-link" onClick={()=>run(()=>api(`/api/admin/questions/${q.id}`,{method:"DELETE"}))}>Supprimer</button></div>)}</div><QuestionForm assessmentId={a.id} busy={busy} run={run}/></details>
+          </div>)}
+        </div>
+        {course.assessments.length===0&&<div className="empty-inline">Aucun examen configuré pour cette formation.</div>}
+        <details className="admin-details"><summary>＋ Ajouter un examen</summary><ExamForm courseId={course.id} schemes={schemes} busy={busy} run={run}/></details>
+      </article>)}
+    </div>
   </div>;
 }
 
