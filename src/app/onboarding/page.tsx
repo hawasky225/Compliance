@@ -9,7 +9,10 @@ export default function OnboardingPage() {
   useEffect(() => {
     fetch("/api/profile").then(async r => {
       if (r.status === 401) return window.location.href = "/connexion";
-      const data = await r.json(); setName(data.user?.name ?? "");
+      const data = await r.json();
+      if (data.user?.role === "PLATFORM_ADMIN") return window.location.href = "/admin";
+      if (data.user?.professional?.onboardingCompleted) return window.location.href = "/";
+      setName(data.user?.name ?? "");
     });
   }, []);
 
