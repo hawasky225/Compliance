@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
+import { prisma } from "@/lib/prisma";
 
 const COOKIE = "compliance_session";
 const MAX_AGE = 60 * 60 * 24 * 7;
@@ -21,13 +22,18 @@ export function verifyPassword(password: string, stored: string) {
 
 function secret() {
   const value = process.env.SESSION_SECRET;
-  if (!value) throw new Error("SESSION_SECRET is required");
+  if (!value || value.length < 32) throw new Error("SESSION_SECRET must contain at least 32 characters");
   return value;
 }
 
-function sessionToken(userId: string) {
+function passwordVersion(passwordHash: string) {
+  return crypto.createHmac("sha256", secret()).update(passwordHash).digest("hex").slice(0, 24);
+}
+
+function sessionToken(userId: string, passwordHash: string) {
   const exp = Math.floor(Date.now() / 1000) + MAX_AGE;
-  const payload = `${userId}.${exp}`;
+  const version = passwordVersion(passwordHash);
+  const payload = `${userId}.${exp}.${version}`;
   const sig = crypto.createHmac("sha256", secret()).update(payload).digest("hex");
   return `${payload}.${sig}`;
 }
@@ -65,27 +71,38 @@ export function secureEqualText(a: string, b: string) {
   return left.length === right.length && crypto.timingSafeEqual(left, right);
 }
 
-export async function setSession(userId: string) {
+export async function setSession(userId: string, passwordHash: string) {
   const jar = await cookies();
-  jar.set(COOKIE, sessionToken(userId), { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: MAX_AGE });
+  jar.set(COOKIE, sessionToken(userId, passwordHash), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: MAX_AGE,
+  });
 }
 
 export async function clearSession() {
   const jar = await cookies();
-  jar.set(COOKIE, "", { httpOnly: true, expires: new Date(0), path: "/" });
+  jar.set(COOKIE, "", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", expires: new Date(0), path: "/" });
 }
 
 export async function getSessionUserId() {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
   if (!token) return null;
-  const [userId, expRaw, sig] = token.split(".");
-  if (!userId || !expRaw || !sig) return null;
+  const [userId, expRaw, version, sig] = token.split(".");
+  if (!userId || !expRaw || !version || !sig) return null;
   if (Number(expRaw) < Math.floor(Date.now() / 1000)) return null;
-  const payload = `${userId}.${expRaw}`;
+
+  const payload = `${userId}.${expRaw}.${version}`;
   const expected = crypto.createHmac("sha256", secret()).update(payload).digest("hex");
   const a = Buffer.from(sig, "hex");
   const b = Buffer.from(expected, "hex");
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { passwordHash: true, status: true } });
+  if (!user || user.status !== "ACTIVE") return null;
+  if (!secureEqualText(version, passwordVersion(user.passwordHash))) return null;
   return userId;
 }

@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, setSession, verifyPassword } from "@/lib/auth";
+import { setSession, verifyPassword } from "@/lib/auth";
+import { rateLimit, requireSameOrigin } from "@/lib/security";
 
 export async function POST(request: Request) {
+  const originError = requireSameOrigin(request);
+  if (originError) return originError;
+  const limited = rateLimit(request, "auth:login", 8, 15 * 60_000);
+  if (limited) return limited;
+
   const body = await request.json().catch(() => ({}));
   const email = String(body.email ?? "").trim().toLowerCase();
   const password = String(body.password ?? "");
@@ -12,32 +18,7 @@ export async function POST(request: Request) {
     include: { professional: true, organizationMemberships: true },
   });
 
-  if (!user) {
-    return NextResponse.json({ error: "E-mail ou mot de passe incorrect." }, { status: 401 });
-  }
-
-  let passwordValid = verifyPassword(password, user.passwordHash);
-
-  // Recovery guard for the bootstrap platform administrator. If the database
-  // hash became stale after an early seed/reset, the configured bootstrap
-  // credentials repair it once and normal hash verification is used after.
-  const bootstrapEmail = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
-  const bootstrapPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD ?? "";
-  if (
-    !passwordValid &&
-    user.role === "PLATFORM_ADMIN" &&
-    bootstrapEmail === email &&
-    bootstrapPassword &&
-    password === bootstrapPassword
-  ) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { passwordHash: hashPassword(password), status: "ACTIVE" },
-    });
-    passwordValid = true;
-  }
-
-  if (!passwordValid) {
+  if (!user || !verifyPassword(password, user.passwordHash)) {
     return NextResponse.json({ error: "E-mail ou mot de passe incorrect." }, { status: 401 });
   }
 
@@ -53,7 +34,7 @@ export async function POST(request: Request) {
     );
   }
 
-  await setSession(user.id);
+  await setSession(user.id, user.passwordHash);
   if (user.role === "PLATFORM_ADMIN") return NextResponse.json({ ok: true, redirect: "/admin" });
   if (user.role === "EMPLOYER_ADMIN" || user.role === "VERIFIER") {
     return NextResponse.json({ ok: true, redirect: "/entreprise" });
