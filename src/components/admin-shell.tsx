@@ -1,40 +1,5 @@
 "use client";
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-
-const nav = [
-  ["/admin", "Tableau de bord"],
-  ["/admin/formations", "Formations & examens"],
-  ["/admin/certifications", "Certifications"],
-  ["/admin/professionnels", "Professionnels"],
-  ["/profil", "Profil & sécurité"],
-];
-
-function initials(name: string) {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "AD";
-}
-
-export function AdminShell({ children, userName }: { children: React.ReactNode; userName: string }) {
-  const path = usePathname();
-  const avatar = initials(userName);
-
-  return <div className="app-layout">
-    <aside className="sidebar admin-sidebar">
-      <Link href="/admin" className="brand"><span className="brand-mark">C</span><span>compliance</span></Link>
-      <div className="workspace-pill"><span>◈</span><div><small>ESPACE</small><strong>Administration</strong></div></div>
-      <nav>
-        {nav.map(([href,label]) => {
-          const active = href === "/admin" ? path === "/admin" : path.startsWith(href);
-          return <Link key={href} href={href} className={active ? "nav-link active" : "nav-link"}>{label}</Link>;
-        })}
-      </nav>
-      <div className="user-mini"><div className="avatar">{avatar}</div><div><strong>{userName}</strong><small>Administrateur plateforme</small></div></div>
-      <form action="/api/auth/logout" method="post" style={{ marginTop: 12 }}><button type="submit" className="nav-link" style={{ width:"100%",textAlign:"left",cursor:"pointer",background:"transparent",border:0 }}>Déconnexion</button></form>
-    </aside>
-    <main className="main-area">
-      <header className="topbar"><strong>Administration Compliance</strong><div style={{display:"flex",alignItems:"center",gap:12}}><Link className="outline-btn" href="/profil">Profil</Link><form action="/api/auth/logout" method="post"><button type="submit" className="outline-btn">Déconnexion</button></form><div className="avatar">{avatar}</div></div></header>
-      <div className="content">{children}</div>
-    </main>
-  </div>;
-}
+import Link from "next/link";import {usePathname} from "next/navigation";
+const nav=[["/admin","Tableau de bord","⌂"],["/admin/formations","Formations & examens","▤"],["/admin/certifications","Certifications","◇"],["/admin/professionnels","Professionnels","♙"],["/admin/utilisateurs","Gestion des utilisateurs","♚"],["/admin/entreprises","Entreprises & accès","▦"],["/profil","Profil & sécurité","⚿"]];
+function initials(name:string){return name.split(/\s+/).filter(Boolean).slice(0,2).map(p=>p[0]?.toUpperCase()).join("")||"AD"}
+export function AdminShell({children,userName}:{children:React.ReactNode;userName:string}){const path=usePathname();const avatar=initials(userName);return <div className="app-layout"><aside className="sidebar admin-sidebar"><Link href="/admin" className="brand"><span className="brand-mark">C</span><span>compliance</span></Link><div className="workspace-pill"><span>◈</span><div><small>ESPACE</small><strong>Administration</strong></div></div><nav>{nav.map(([href,label,icon])=>{const active=href==="/admin"?path==="/admin":path.startsWith(href);return <Link key={href} href={href} className={active?"nav-link active":"nav-link"}><i>{icon}</i>{label}</Link>})}</nav><div className="user-mini"><div className="avatar">{avatar}</div><div><strong>{userName}</strong><small>Administrateur plateforme</small></div></div><form action="/api/auth/logout" method="post" style={{marginTop:12}}><button type="submit" className="nav-link logout-link">↪ Déconnexion</button></form></aside><main className="main-area"><header className="topbar"><div><small className="topbar-kicker">CONSOLE</small><strong>Administration Compliance</strong></div><div className="top-actions"><Link className="outline-btn" href="/profil">Profil</Link><form action="/api/auth/logout" method="post"><button type="submit" className="outline-btn">Déconnexion</button></form><div className="avatar">{avatar}</div></div></header><div className="content">{children}</div></main></div>}
