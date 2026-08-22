@@ -17,9 +17,7 @@ export default async function EnterprisePortal() {
               professionals: {
                 include: {
                   user: true,
-                  certifications: {
-                    include: { scheme: true },
-                  },
+                  certifications: { include: { scheme: true } },
                 },
               },
             },
@@ -29,17 +27,19 @@ export default async function EnterprisePortal() {
     },
   });
 
-  if (!user || !["EMPLOYER_ADMIN", "VERIFIER"].includes(user.role)) {
-    redirect("/");
-  }
+  if (!user || !["EMPLOYER_ADMIN", "VERIFIER"].includes(user.role)) redirect("/");
 
-  const membership = user.organizationMemberships[0];
+  const membership = user.organizationMemberships.find(
+    (item) => item.organization.active && item.canViewProfiles,
+  );
+
   if (!membership) {
     return (
       <main className="verify-page">
         <div className="verify-card">
-          <h1>Accès entreprise</h1>
-          <p>Votre compte n’est pas encore rattaché à une entreprise. Contactez Compliance.</p>
+          <h1>Accès entreprise indisponible</h1>
+          <p>Votre compte ne dispose d’aucun accès actif autorisé à un registre d’entreprise. Contactez l’administrateur Compliance.</p>
+          <form action="/api/auth/logout" method="post"><button type="submit" className="outline-btn">Déconnexion</button></form>
         </div>
       </main>
     );
@@ -49,19 +49,16 @@ export default async function EnterprisePortal() {
   const visibleProfessionals = organization.professionals.filter(
     (professional) => professional.profileVisibleToEmployers,
   );
-  const activeCertifications = organization.professionals.reduce(
-    (total, professional) =>
-      total + professional.certifications.filter((certification) => certification.status === "ACTIVE").length,
+  const canVerifyCertificates = membership.canVerifyCertificates;
+  const activeCertifications = visibleProfessionals.reduce(
+    (total, professional) => total + professional.certifications.filter((certification) => certification.status === "ACTIVE").length,
     0,
   );
-  const expiringCertifications = organization.professionals.reduce(
-    (total, professional) =>
-      total + professional.certifications.filter((certification) => certification.status === "EXPIRING").length,
+  const expiringCertifications = visibleProfessionals.reduce(
+    (total, professional) => total + professional.certifications.filter((certification) => certification.status === "EXPIRING").length,
     0,
   );
-  const verifiedIdentities = organization.professionals.filter(
-    (professional) => professional.identityVerified,
-  ).length;
+  const verifiedIdentities = visibleProfessionals.filter((professional) => professional.identityVerified).length;
 
   return (
     <main className="verify-page" style={{ alignItems: "stretch" }}>
@@ -72,59 +69,40 @@ export default async function EnterprisePortal() {
           <small>ENTREPRISE</small>
         </div>
         <div>
-          <strong>{organization.name}</strong> · <Link href="/api/auth/logout">Déconnexion</Link>
+          <strong>{organization.name}</strong>
+          <form action="/api/auth/logout" method="post" style={{ display: "inline", marginLeft: 12 }}>
+            <button type="submit" className="outline-btn">Déconnexion</button>
+          </form>
         </div>
       </header>
 
       <section className="enterprise-portal-content">
         <p className="eyebrow">ESPACE SÉCURISÉ</p>
         <h1>Registre des compétences</h1>
-        <p>Consultez les professionnels rattachés à votre organisation et vérifiez leurs certifications.</p>
+        <p>Consultez uniquement les professionnels rattachés à votre organisation et les informations autorisées pour votre compte.</p>
 
         <div className="directory-kpis">
-          <div>
-            <b>{organization.professionals.length}</b>
-            <span>Professionnels</span>
-          </div>
-          <div>
-            <b>{activeCertifications}</b>
-            <span>Certifications actives</span>
-          </div>
-          <div>
-            <b>{verifiedIdentities}</b>
-            <span>Identités vérifiées</span>
-          </div>
-          <div>
-            <b>{expiringCertifications}</b>
-            <span>À renouveler</span>
-          </div>
+          <div><b>{visibleProfessionals.length}</b><span>Professionnels visibles</span></div>
+          <div><b>{canVerifyCertificates ? activeCertifications : "—"}</b><span>Certifications actives</span></div>
+          <div><b>{verifiedIdentities}</b><span>Identités vérifiées</span></div>
+          <div><b>{canVerifyCertificates ? expiringCertifications : "—"}</b><span>À renouveler</span></div>
         </div>
 
         <div className="admin-table-card">
           <table className="premium-table">
-            <thead>
-              <tr>
-                <th>PROFESSIONNEL</th>
-                <th>FONCTION</th>
-                <th>CERTIFICATIONS</th>
-                <th>STATUT</th>
-              </tr>
-            </thead>
+            <thead><tr><th>PROFESSIONNEL</th><th>FONCTION</th><th>CERTIFICATIONS</th><th>STATUT</th></tr></thead>
             <tbody>
               {visibleProfessionals.map((professional) => (
                 <tr key={professional.id}>
                   <td>
                     <div className="table-person">
                       <span className="avatar">{professional.user.name.slice(0, 2).toUpperCase()}</span>
-                      <div>
-                        <strong>{professional.user.name}</strong>
-                        <small>{professional.professionalId}</small>
-                      </div>
+                      <div><strong>{professional.user.name}</strong><small>{professional.professionalId}</small></div>
                     </div>
                   </td>
                   <td>{professional.jobTitle || "Professionnel"}</td>
                   <td>
-                    {professional.certifications.length === 0 ? (
+                    {!canVerifyCertificates ? <small>Accès aux certifications non autorisé</small> : professional.certifications.length === 0 ? (
                       <small>Aucune certification</small>
                     ) : (
                       professional.certifications.map((certification) => (
@@ -135,9 +113,7 @@ export default async function EnterprisePortal() {
                       ))
                     )}
                   </td>
-                  <td>
-                    <span className="access-pill active">Vérifiable</span>
-                  </td>
+                  <td><span className="access-pill active">Autorisé</span></td>
                 </tr>
               ))}
             </tbody>
