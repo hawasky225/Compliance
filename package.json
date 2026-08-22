@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@prisma/client": "6.14.0",
-    "next": "15.5.21",
+    "next": "15.5.23",
     "prisma": "6.14.0",
     "qrcode": "1.5.4",
     "react": "19.1.0",
@@ -30,7 +30,7 @@
     "@types/react": "19.0.0",
     "@types/react-dom": "19.0.0",
     "eslint": "9.0.0",
-    "eslint-config-next": "15.5.21",
+    "eslint-config-next": "15.5.23",
     "typescript": "5.7.0"
   }
 }
