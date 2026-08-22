@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "expiry": "node scripts/expire-certifications.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.14.0",
