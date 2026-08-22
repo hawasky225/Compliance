@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useState } from "react";
 
 export default function ConnexionPage() {
@@ -29,6 +30,7 @@ export default function ConnexionPage() {
         {mode === "register" && <input name="name" required placeholder="Nom complet" style={input}/>} 
         <input name="email" type="email" required placeholder="Adresse e-mail" style={input}/>
         <input name="password" type="password" required minLength={10} placeholder="Mot de passe" style={input}/>
+        {mode === "login" && <div style={{textAlign:"right",marginTop:-4}}><Link href="/mot-de-passe-oublie" style={{fontSize:14,fontWeight:700,color:"#184f3f",textDecoration:"none"}}>Mot de passe oublié ?</Link></div>}
         {error && <p style={{color:"#b42318",margin:0}}>{error}</p>}
         <button disabled={loading} style={{padding:14,border:0,borderRadius:12,background:"#123f32",color:"white",fontWeight:800}}>{loading ? "Traitement…" : mode === "login" ? "Se connecter" : "Créer mon passeport"}</button>
       </form>
