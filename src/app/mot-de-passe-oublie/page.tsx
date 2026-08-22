@@ -18,18 +18,26 @@ export default function ForgotPasswordPage() {
     setRecoveryMode(Boolean(data.recoveryMode));
   }
 
-  return <main className="auth-page"><section className="auth-card">
-    <div className="auth-brand">COMPLIANCE</div>
-    <p className="auth-kicker">Récupération de compte</p>
-    <h1>Mot de passe oublié</h1>
-    <p>Entrez l’adresse e-mail associée à votre compte.</p>
-    <form onSubmit={submit} className="auth-form">
-      <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Adresse e-mail" required />
-      {error&&<p className="auth-error">{error}</p>}
-      {message&&<p className="auth-success">{message}</p>}
-      <button className="button" type="submit">Continuer</button>
+  return <main style={page}><section style={card}>
+    <div style={{fontWeight:900,fontSize:24}}>COMPLIANCE</div>
+    <p style={{fontSize:12,fontWeight:800,letterSpacing:1.5,textTransform:"uppercase",color:"#23745b",marginBottom:6}}>Récupération de compte</p>
+    <h1 style={{margin:"0 0 8px",fontSize:32}}>Mot de passe oublié</h1>
+    <p style={{color:"#60706a",marginTop:0}}>Entrez l’adresse e-mail associée à votre compte.</p>
+    <form onSubmit={submit} style={{display:"grid",gap:14,marginTop:24}}>
+      <input style={input} type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Adresse e-mail" required />
+      {error&&<p style={{color:"#b42318",margin:0}}>{error}</p>}
+      {message&&<p style={{color:"#23745b",margin:0}}>{message}</p>}
+      <button style={primary} type="submit">Continuer</button>
     </form>
-    {recoveryMode&&<div className="recovery-box"><strong>Compte administrateur bootstrap</strong><p>Utilisez le code de récupération administrateur pour définir un nouveau mot de passe.</p><Link className="button secondary" href={`/reinitialiser-mot-de-passe?email=${encodeURIComponent(email)}&recovery=1`}>Saisir le code de récupération</Link></div>}
-    <Link className="auth-back" href="/connexion">← Retour à la connexion</Link>
+    {recoveryMode&&<div style={recoveryBox}><strong>Compte administrateur bootstrap</strong><p style={{color:"#60706a"}}>Utilisez le code de récupération administrateur pour définir un nouveau mot de passe.</p><Link style={secondary} href={`/reinitialiser-mot-de-passe?email=${encodeURIComponent(email)}&recovery=1`}>Saisir le code de récupération</Link></div>}
+    <Link style={back} href="/connexion">← Retour à la connexion</Link>
   </section></main>;
 }
+
+const page={minHeight:"100vh",display:"grid",placeItems:"center",padding:24,background:"#f4f7f6"} as const;
+const card={width:"100%",maxWidth:520,background:"white",borderRadius:24,padding:36,boxShadow:"0 20px 60px rgba(0,0,0,.08)"} as const;
+const input={padding:14,borderRadius:12,border:"1px solid #d7dfdb",fontSize:16} as const;
+const primary={padding:14,border:0,borderRadius:12,background:"#123f32",color:"white",fontWeight:800,fontSize:15,cursor:"pointer"} as const;
+const secondary={display:"inline-block",padding:"11px 14px",borderRadius:10,border:"1px solid #c9d7d1",color:"#123f32",fontWeight:800,textDecoration:"none"} as const;
+const recoveryBox={marginTop:22,padding:18,borderRadius:14,background:"#f2f7f5",border:"1px solid #dbe7e2"} as const;
+const back={display:"inline-block",marginTop:24,color:"#365b50",fontWeight:700,textDecoration:"none"} as const;
