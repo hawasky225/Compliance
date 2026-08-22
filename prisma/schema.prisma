@@ -1,0 +1,115 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+enum UserRole { PLATFORM_ADMIN PROFESSIONAL TRAINER ASSESSOR EMPLOYER_ADMIN VERIFIER }
+enum EnrollmentStatus { ENROLLED IN_PROGRESS COMPLETED FAILED }
+enum CertificationStatus { PENDING ACTIVE EXPIRING EXPIRED SUSPENDED REVOKED }
+enum AssessmentType { QUIZ EXAM CASE_STUDY PRACTICAL }
+
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  name String
+  role UserRole @default(PROFESSIONAL)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  professional Professional?
+}
+
+model Professional {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  professionalId String @unique
+  jobTitle String?
+  sector String @default("MINING")
+  country String?
+  city String?
+  identityVerified Boolean @default(false)
+  enrollments Enrollment[]
+  certifications Certification[]
+  results AssessmentResult[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Course {
+  id String @id @default(cuid())
+  slug String @unique
+  title String
+  description String?
+  durationMinutes Int
+  level String
+  published Boolean @default(false)
+  enrollments Enrollment[]
+  assessments Assessment[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Enrollment {
+  id String @id @default(cuid())
+  professionalId String
+  professional Professional @relation(fields:[professionalId], references:[id], onDelete:Cascade)
+  courseId String
+  course Course @relation(fields:[courseId], references:[id], onDelete:Cascade)
+  status EnrollmentStatus @default(ENROLLED)
+  progress Int @default(0)
+  startedAt DateTime @default(now())
+  completedAt DateTime?
+  @@unique([professionalId,courseId])
+}
+
+model Assessment {
+  id String @id @default(cuid())
+  courseId String
+  course Course @relation(fields:[courseId], references:[id], onDelete:Cascade)
+  title String
+  type AssessmentType
+  passingScore Int @default(75)
+  maxAttempts Int @default(2)
+  results AssessmentResult[]
+}
+
+model AssessmentResult {
+  id String @id @default(cuid())
+  assessmentId String
+  assessment Assessment @relation(fields:[assessmentId], references:[id], onDelete:Cascade)
+  professionalId String
+  professional Professional @relation(fields:[professionalId], references:[id], onDelete:Cascade)
+  score Int
+  passed Boolean
+  attempt Int
+  completedAt DateTime @default(now())
+}
+
+model CertificationScheme {
+  id String @id @default(cuid())
+  code String @unique
+  title String
+  description String?
+  validityMonths Int @default(36)
+  passingScore Int @default(75)
+  maxAttempts Int @default(2)
+  requiresPractical Boolean @default(false)
+  active Boolean @default(true)
+  certifications Certification[]
+}
+
+model Certification {
+  id String @id @default(cuid())
+  certificateNumber String @unique
+  schemeId String
+  scheme CertificationScheme @relation(fields:[schemeId], references:[id])
+  professionalId String
+  professional Professional @relation(fields:[professionalId], references:[id], onDelete:Cascade)
+  status CertificationStatus @default(PENDING)
+  issuedAt DateTime?
+  expiresAt DateTime?
+  verificationToken String @unique @default(cuid())
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([professionalId,status])
+  @@index([expiresAt,status])
+}
