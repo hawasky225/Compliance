@@ -6,7 +6,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   await requireAdmin();
   const { id } = await params;
   const b = await req.json();
-  const data: Record<string, unknown> = {};
+  const data: any = {};
   for (const key of ["title","summary","body","pdfUrl","videoUrl"] as const) if (key in b) data[key] = String(b[key] || "").trim() || null;
   if ("durationMinutes" in b) data.durationMinutes = Math.max(1, Number(b.durationMinutes) || 1);
   if ("sortOrder" in b) data.sortOrder = Number(b.sortOrder) || 0;
