@@ -1,0 +1,7 @@
+import { AppShell } from "@/components/app-shell";
+import { certifications, professional } from "@/lib/demo";
+
+export default function Passeport(){
+  return <AppShell><div className="page-head"><div><p className="eyebrow">IDENTITÉ PROFESSIONNELLE</p><h1>Mon Passeport</h1><p>Votre dossier vérifiable de compétences, formations et certifications.</p></div><button className="primary-btn">Partager mon passeport</button></div>
+  <section className="passport-card"><div className="passport-banner"><div className="brand"><span className="brand-mark inverse">C</span><span>compliance</span></div><span>PASSEPORT PROFESSIONNEL</span></div><div className="passport-content"><div className="identity"><div className="avatar huge">MK</div><div><span className="verified">✓ Identité vérifiée</span><h2>{professional.name}</h2><p>{professional.role} · {professional.sector}</p><small>{professional.location}</small></div></div><div className="passport-stats"><div><strong>3</strong><span>Certifications actives</span></div><div><strong>42 h</strong><span>Formation validée</span></div><div><strong>84%</strong><span>Score moyen</span></div></div><h3>Certifications</h3>{certifications.map(c=><div className="passport-cert" key={c.code}><span className="seal">✓</span><div><strong>{c.title}</strong><small>{c.code}</small></div><span>{c.expires}</span><span className={`status ${c.tone}`}>{c.status}</span></div>)}</div><div className="passport-footer">Passeport généré par Compliance · Vérification numérique sécurisée</div></section></AppShell>;
+}
