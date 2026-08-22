@@ -9,7 +9,7 @@ export default async function EnterpriseDetailPage({params}:{params:Promise<{id:
   const {id}=await params;
   const [organization, users, professionals] = await Promise.all([
     prisma.organization.findUnique({where:{id},include:{members:{include:{user:true}},professionals:{include:{user:true,certifications:{include:{scheme:true}}}}}}),
-    prisma.user.findMany({where:{status:"ACTIVE"},select:{id:true,name:true,email:true,role:true},orderBy:{name:"asc"}}),
+    prisma.user.findMany({where:{status:"ACTIVE",role:{not:"PLATFORM_ADMIN"}},select:{id:true,name:true,email:true,role:true},orderBy:{name:"asc"}}),
     prisma.professional.findMany({include:{user:true,organization:true,certifications:{include:{scheme:true}}},orderBy:{user:{name:"asc"}}}),
   ]);
   if(!organization) notFound();
