@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, secureEqualText, verifyPasswordResetToken } from "@/lib/auth";
+import { hashPassword, verifyPasswordResetToken } from "@/lib/auth";
+import { rateLimit, requireSameOrigin } from "@/lib/security";
 
 export async function POST(request: Request) {
+  const originError = requireSameOrigin(request);
+  if (originError) return originError;
+  const limited = rateLimit(request, "auth:reset-password", 6, 30 * 60_000);
+  if (limited) return limited;
+
   const body = await request.json().catch(() => ({}));
   const password = String(body.password ?? "");
   const confirmPassword = String(body.confirmPassword ?? "");
@@ -10,28 +16,16 @@ export async function POST(request: Request) {
   if (password !== confirmPassword) return NextResponse.json({ error: "Les mots de passe ne correspondent pas." }, { status: 400 });
 
   const token = String(body.token ?? "").trim();
-  if (token) {
-    const decoded = token.split(".")[0];
-    let userId = "";
-    try { userId = Buffer.from(decoded, "base64url").toString("utf8").split(".")[0] ?? ""; } catch { /* invalid */ }
-    const user = userId ? await prisma.user.findUnique({ where: { id: userId } }) : null;
-    if (!user || verifyPasswordResetToken(token, user.passwordHash) !== user.id) {
-      return NextResponse.json({ error: "Ce lien de réinitialisation est invalide ou a expiré." }, { status: 400 });
-    }
-    await prisma.user.update({ where: { id: user.id }, data: { passwordHash: hashPassword(password) } });
-    return NextResponse.json({ ok: true });
+  if (!token) return NextResponse.json({ error: "Ce lien de réinitialisation est invalide ou a expiré." }, { status: 400 });
+
+  const decoded = token.split(".")[0];
+  let userId = "";
+  try { userId = Buffer.from(decoded, "base64url").toString("utf8").split(".")[0] ?? ""; } catch { /* invalid */ }
+  const user = userId ? await prisma.user.findUnique({ where: { id: userId } }) : null;
+  if (!user || verifyPasswordResetToken(token, user.passwordHash) !== user.id) {
+    return NextResponse.json({ error: "Ce lien de réinitialisation est invalide ou a expiré." }, { status: 400 });
   }
 
-  const email = String(body.email ?? "").trim().toLowerCase();
-  const recoveryCode = String(body.recoveryCode ?? "").trim();
-  const bootstrapEmail = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
-  const configuredCode = process.env.ADMIN_RECOVERY_CODE ?? "";
-  if (!email || !recoveryCode || !bootstrapEmail || email !== bootstrapEmail || !configuredCode || !secureEqualText(recoveryCode, configuredCode)) {
-    return NextResponse.json({ error: "Code de récupération invalide." }, { status: 400 });
-  }
-
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || user.role !== "PLATFORM_ADMIN") return NextResponse.json({ error: "Code de récupération invalide." }, { status: 400 });
   await prisma.user.update({ where: { id: user.id }, data: { passwordHash: hashPassword(password) } });
   return NextResponse.json({ ok: true });
 }
