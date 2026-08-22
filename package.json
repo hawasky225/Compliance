@@ -13,23 +13,24 @@
     "lint": "eslint .",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
-    "expiry": "node scripts/expire-certifications.mjs"
+    "expiry": "node scripts/expire-certifications.mjs",
+    "security:test": "node scripts/security-regression.mjs"
   },
   "dependencies": {
-    "@prisma/client": "^6.14.0",
-    "next": "^15.5.0",
-    "prisma": "^6.14.0",
-    "qrcode": "^1.5.4",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "@prisma/client": "6.14.0",
+    "next": "15.5.21",
+    "prisma": "6.14.0",
+    "qrcode": "1.5.4",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
-    "@types/qrcode": "^1.5.5",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "eslint": "^9.0.0",
-    "eslint-config-next": "^15.5.0",
-    "typescript": "^5.7.0"
+    "@types/node": "22.10.0",
+    "@types/qrcode": "1.5.5",
+    "@types/react": "19.0.0",
+    "@types/react-dom": "19.0.0",
+    "eslint": "9.0.0",
+    "eslint-config-next": "15.5.21",
+    "typescript": "5.7.0"
   }
 }
