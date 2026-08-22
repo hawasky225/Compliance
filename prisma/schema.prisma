@@ -5,6 +5,8 @@ enum UserRole { PLATFORM_ADMIN PROFESSIONAL TRAINER ASSESSOR EMPLOYER_ADMIN VERI
 enum EnrollmentStatus { ENROLLED IN_PROGRESS COMPLETED FAILED }
 enum CertificationStatus { PENDING ACTIVE EXPIRING EXPIRED SUSPENDED REVOKED }
 enum AssessmentType { QUIZ EXAM CASE_STUDY PRACTICAL }
+enum AttemptStatus { IN_PROGRESS SUBMITTED GRADED }
+enum QuestionType { SINGLE_CHOICE MULTIPLE_CHOICE TRUE_FALSE }
 
 model User {
   id String @id @default(cuid())
@@ -33,6 +35,7 @@ model Professional {
   enrollments Enrollment[]
   certifications Certification[]
   results AssessmentResult[]
+  attempts ExamAttempt[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -68,11 +71,60 @@ model Assessment {
   id String @id @default(cuid())
   courseId String
   course Course @relation(fields:[courseId], references:[id], onDelete:Cascade)
+  schemeId String?
+  scheme CertificationScheme? @relation(fields:[schemeId], references:[id])
   title String
   type AssessmentType
   passingScore Int @default(75)
   maxAttempts Int @default(2)
+  durationMinutes Int @default(45)
+  published Boolean @default(false)
+  questions Question[]
   results AssessmentResult[]
+  attempts ExamAttempt[]
+}
+
+model Question {
+  id String @id @default(cuid())
+  assessmentId String
+  assessment Assessment @relation(fields:[assessmentId], references:[id], onDelete:Cascade)
+  prompt String
+  type QuestionType @default(SINGLE_CHOICE)
+  options Json
+  correctAnswers Json
+  points Int @default(1)
+  sortOrder Int @default(0)
+  answers ExamAnswer[]
+  @@index([assessmentId,sortOrder])
+}
+
+model ExamAttempt {
+  id String @id @default(cuid())
+  assessmentId String
+  assessment Assessment @relation(fields:[assessmentId], references:[id], onDelete:Cascade)
+  professionalId String
+  professional Professional @relation(fields:[professionalId], references:[id], onDelete:Cascade)
+  attemptNumber Int
+  status AttemptStatus @default(IN_PROGRESS)
+  score Int?
+  passed Boolean?
+  startedAt DateTime @default(now())
+  submittedAt DateTime?
+  answers ExamAnswer[]
+  @@unique([assessmentId,professionalId,attemptNumber])
+  @@index([professionalId,status])
+}
+
+model ExamAnswer {
+  id String @id @default(cuid())
+  attemptId String
+  attempt ExamAttempt @relation(fields:[attemptId], references:[id], onDelete:Cascade)
+  questionId String
+  question Question @relation(fields:[questionId], references:[id], onDelete:Cascade)
+  selectedAnswers Json
+  correct Boolean
+  pointsAwarded Int @default(0)
+  @@unique([attemptId,questionId])
 }
 
 model AssessmentResult {
@@ -97,6 +149,7 @@ model CertificationScheme {
   maxAttempts Int @default(2)
   requiresPractical Boolean @default(false)
   active Boolean @default(true)
+  assessments Assessment[]
   certifications Certification[]
 }
 
@@ -116,4 +169,5 @@ model Certification {
   updatedAt DateTime @updatedAt
   @@index([professionalId,status])
   @@index([expiresAt,status])
+  @@unique([schemeId,professionalId,issuedAt])
 }
