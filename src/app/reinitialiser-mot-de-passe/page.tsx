@@ -1,16 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 export default function ResetPasswordPage() {
-  const params=useSearchParams();
-  const token=params.get("token")||"";
-  const email=params.get("email")||"";
-  const recovery=params.get("recovery")==="1";
+  const [token,setToken]=useState("");
+  const [email,setEmail]=useState("");
+  const [recovery,setRecovery]=useState(false);
   const [error,setError]=useState("");
   const [done,setDone]=useState(false);
+
+  useEffect(()=>{
+    const params=new URLSearchParams(window.location.search);
+    setToken(params.get("token")||"");
+    setEmail(params.get("email")||"");
+    setRecovery(params.get("recovery")==="1");
+  },[]);
+
   const title=useMemo(()=>recovery?"Récupération administrateur":"Nouveau mot de passe",[recovery]);
 
   async function submit(e:FormEvent<HTMLFormElement>) {
