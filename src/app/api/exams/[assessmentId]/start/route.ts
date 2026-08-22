@@ -11,9 +11,20 @@ export async function POST(_: Request, { params }: { params: Promise<{ assessmen
 
   const assessment = await prisma.assessment.findUnique({
     where: { id: assessmentId },
-    include: { questions: { orderBy: { sortOrder: "asc" } } },
+    include: {
+      questions: { orderBy: { sortOrder: "asc" } },
+      course: { include: { modules: { where: { published: true }, include: { chapters: { where: { published: true, required: true }, select: { id: true } } } } } },
+    },
   });
   if (!assessment || !assessment.published) return NextResponse.json({ error: "Examen indisponible" }, { status: 404 });
+
+  if (assessment.requiresCourseCompletion) {
+    const requiredIds = assessment.course.modules.flatMap(m => m.chapters.map(c => c.id));
+    if (requiredIds.length) {
+      const completed = await prisma.chapterProgress.count({ where: { professionalId: professional.id, completed: true, chapterId: { in: requiredIds } } });
+      if (completed < requiredIds.length) return NextResponse.json({ error: "Examen verrouillé : terminez tous les chapitres obligatoires de la formation." }, { status: 409 });
+    }
+  }
 
   const inProgress = await prisma.examAttempt.findFirst({
     where: { assessmentId, professionalId: professional.id, status: "IN_PROGRESS" },
