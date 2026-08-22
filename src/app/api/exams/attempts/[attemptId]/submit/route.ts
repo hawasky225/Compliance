@@ -21,6 +21,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ att
   if (!attempt || attempt.professional.userId !== userId) return NextResponse.json({ error: "Tentative introuvable" }, { status: 404 });
   if (attempt.status !== "IN_PROGRESS") return NextResponse.json({ error: "Tentative déjà soumise" }, { status: 409 });
 
+  const deadline = attempt.startedAt.getTime() + attempt.assessment.durationMinutes * 60_000;
+  if (Date.now() > deadline) {
+    await prisma.$transaction([
+      prisma.examAttempt.update({ where: { id: attempt.id }, data: { status: "GRADED", score: 0, passed: false, submittedAt: new Date() } }),
+      prisma.assessmentResult.create({ data: { assessmentId: attempt.assessmentId, professionalId: attempt.professionalId, score: 0, passed: false, attempt: attempt.attemptNumber } }),
+    ]);
+    return NextResponse.json({ error: "Le temps imparti pour cet examen est écoulé.", score: 0, passed: false }, { status: 409 });
+  }
+
   let earned = 0;
   let total = 0;
   const answers = attempt.assessment.questions.map((q) => {
