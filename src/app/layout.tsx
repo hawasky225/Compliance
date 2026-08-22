@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./admin-premium.css";
+import "./curriculum.css";
 
 export const metadata: Metadata = {
   title: "Compliance — Certification HSE & Mines",

@@ -63,6 +63,13 @@ enum QuestionType {
   TRUE_FALSE
 }
 
+enum ChapterContentType {
+  TEXT
+  PDF
+  VIDEO
+  MIXED
+}
+
 model User {
   id                      String               @id @default(cuid())
   email                   String               @unique
@@ -121,6 +128,7 @@ model Professional {
   profileVisibleToEmployers Boolean            @default(true)
   onboardingCompleted       Boolean            @default(false)
   enrollments               Enrollment[]
+  chapterProgress           ChapterProgress[]
   certifications            Certification[]
   results                   AssessmentResult[]
   attempts                  ExamAttempt[]
@@ -131,17 +139,68 @@ model Professional {
 }
 
 model Course {
-  id              String       @id @default(cuid())
-  slug            String       @unique
+  id              String         @id @default(cuid())
+  slug            String         @unique
   title           String
   description     String?
   durationMinutes Int
   level           String
-  published       Boolean      @default(false)
+  published       Boolean        @default(false)
+  modules         CourseModule[]
   enrollments     Enrollment[]
   assessments     Assessment[]
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model CourseModule {
+  id          String    @id @default(cuid())
+  courseId    String
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  sortOrder   Int       @default(0)
+  published   Boolean   @default(true)
+  chapters    Chapter[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([courseId, sortOrder])
+}
+
+model Chapter {
+  id              String             @id @default(cuid())
+  moduleId        String
+  module          CourseModule       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title           String
+  summary         String?
+  body            String?
+  contentType     ChapterContentType @default(TEXT)
+  durationMinutes Int                @default(20)
+  pdfUrl          String?
+  videoUrl        String?
+  sortOrder       Int                @default(0)
+  required        Boolean            @default(true)
+  published       Boolean            @default(true)
+  progress        ChapterProgress[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([moduleId, sortOrder])
+}
+
+model ChapterProgress {
+  id             String       @id @default(cuid())
+  chapterId      String
+  chapter        Chapter      @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  startedAt      DateTime     @default(now())
+  completed      Boolean      @default(false)
+  completedAt    DateTime?
+
+  @@unique([chapterId, professionalId])
+  @@index([professionalId, completed])
 }
 
 model Enrollment {
@@ -159,20 +218,21 @@ model Enrollment {
 }
 
 model Assessment {
-  id              String               @id @default(cuid())
-  courseId        String
-  course          Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  schemeId        String?
-  scheme          CertificationScheme? @relation(fields: [schemeId], references: [id])
-  title           String
-  type            AssessmentType
-  passingScore    Int                  @default(75)
-  maxAttempts     Int                  @default(2)
-  durationMinutes Int                  @default(45)
-  published       Boolean              @default(false)
-  questions       Question[]
-  results         AssessmentResult[]
-  attempts        ExamAttempt[]
+  id                      String               @id @default(cuid())
+  courseId                String
+  course                  Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  schemeId                String?
+  scheme                  CertificationScheme? @relation(fields: [schemeId], references: [id])
+  title                   String
+  type                    AssessmentType
+  passingScore            Int                  @default(75)
+  maxAttempts             Int                  @default(2)
+  durationMinutes         Int                  @default(45)
+  published               Boolean              @default(false)
+  requiresCourseCompletion Boolean              @default(true)
+  questions               Question[]
+  results                 AssessmentResult[]
+  attempts                ExamAttempt[]
 }
 
 model Question {
