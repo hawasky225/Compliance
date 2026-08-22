@@ -12,6 +12,13 @@ export async function GET() {
 export async function PATCH(request: Request) {
   const userId = await getSessionUserId();
   if (!userId) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  if (!user) return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
+  if (user.role === "PLATFORM_ADMIN") {
+    return NextResponse.json({ error: "Le compte administrateur n’utilise pas de passeport professionnel." }, { status: 403 });
+  }
+
   const body = await request.json();
   const data = {
     jobTitle: String(body.jobTitle ?? "").trim() || null,
@@ -21,6 +28,15 @@ export async function PATCH(request: Request) {
     phone: String(body.phone ?? "").trim() || null,
     onboardingCompleted: true,
   };
-  const professional = await prisma.professional.update({ where: { userId }, data });
+
+  const professional = await prisma.professional.upsert({
+    where: { userId },
+    update: data,
+    create: {
+      userId,
+      professionalId: `CMP-${userId.slice(-8).toUpperCase()}`,
+      ...data,
+    },
+  });
   return NextResponse.json({ ok: true, professional });
 }
