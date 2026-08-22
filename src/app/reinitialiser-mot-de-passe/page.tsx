@@ -1,29 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 export default function ResetPasswordPage() {
   const [token,setToken]=useState("");
-  const [email,setEmail]=useState("");
-  const [recovery,setRecovery]=useState(false);
+  const [ready,setReady]=useState(false);
   const [error,setError]=useState("");
   const [done,setDone]=useState(false);
 
   useEffect(()=>{
     const params=new URLSearchParams(window.location.search);
     setToken(params.get("token")||"");
-    setEmail(params.get("email")||"");
-    setRecovery(params.get("recovery")==="1");
+    setReady(true);
   },[]);
 
-  const title=useMemo(()=>recovery?"Récupération administrateur":"Nouveau mot de passe",[recovery]);
-
   async function submit(e:FormEvent<HTMLFormElement>) {
-    e.preventDefault(); setError("");
+    e.preventDefault();
+    setError("");
+    if(!token) return setError("Ce lien de réinitialisation est invalide ou a expiré.");
     const body=Object.fromEntries(new FormData(e.currentTarget).entries());
-    const res=await fetch("/api/auth/reset-password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...body,token,email})});
-    const data=await res.json();
+    const res=await fetch("/api/auth/reset-password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...body,token})});
+    const data=await res.json().catch(()=>({}));
     if(!res.ok) return setError(data.error||"Impossible de réinitialiser le mot de passe.");
     setDone(true);
   }
@@ -31,12 +29,17 @@ export default function ResetPasswordPage() {
   return <main style={page}><section style={card}>
     <div style={{fontWeight:900,fontSize:24}}>COMPLIANCE</div>
     <p style={{fontSize:12,fontWeight:800,letterSpacing:1.5,textTransform:"uppercase",color:"#23745b",marginBottom:6}}>Sécurité du compte</p>
-    <h1 style={{margin:"0 0 8px",fontSize:32}}>{title}</h1>
-    <p style={{color:"#60706a",marginTop:0}}>{recovery?"Saisissez votre code de récupération puis choisissez un nouveau mot de passe.":"Choisissez un nouveau mot de passe sécurisé pour votre compte."}</p>
-    {done?<><p style={{color:"#23745b",padding:"12px 14px",background:"#eef8f3",borderRadius:10}}>Votre mot de passe a été mis à jour.</p><Link style={primaryLink} href="/connexion">Se connecter</Link></>:<form onSubmit={submit} style={{display:"grid",gap:14,marginTop:24}}>
-      {recovery&&<input style={input} name="recoveryCode" type="password" placeholder="Code de récupération" required />}
-      <input style={input} name="password" type="password" minLength={12} placeholder="Nouveau mot de passe" required />
-      <input style={input} name="confirmPassword" type="password" minLength={12} placeholder="Confirmer le nouveau mot de passe" required />
+    <h1 style={{margin:"0 0 8px",fontSize:32}}>Nouveau mot de passe</h1>
+    <p style={{color:"#60706a",marginTop:0}}>Choisissez un nouveau mot de passe sécurisé pour votre compte.</p>
+    {ready && !token ? <>
+      <p style={{color:"#b42318",padding:"12px 14px",background:"#fff2ef",borderRadius:10}}>Ce lien de réinitialisation est invalide ou a expiré.</p>
+      <Link style={primaryLink} href="/mot-de-passe-oublie">Demander un nouveau lien</Link>
+    </> : done ? <>
+      <p style={{color:"#23745b",padding:"12px 14px",background:"#eef8f3",borderRadius:10}}>Votre mot de passe a été mis à jour. Les anciennes sessions ont été invalidées.</p>
+      <Link style={primaryLink} href="/connexion">Se connecter</Link>
+    </> : <form onSubmit={submit} style={{display:"grid",gap:14,marginTop:24}}>
+      <input style={input} name="password" type="password" minLength={12} placeholder="Nouveau mot de passe" autoComplete="new-password" required />
+      <input style={input} name="confirmPassword" type="password" minLength={12} placeholder="Confirmer le nouveau mot de passe" autoComplete="new-password" required />
       {error&&<p style={{color:"#b42318",margin:0}}>{error}</p>}
       <button style={primaryButton} type="submit">Mettre à jour le mot de passe</button>
     </form>}
