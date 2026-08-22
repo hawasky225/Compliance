@@ -11,5 +11,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "E-mail ou mot de passe incorrect." }, { status: 401 });
   }
   await setSession(user.id);
+
+  // Platform administrators do not need a Professional profile or mining passport.
+  if (user.role === "PLATFORM_ADMIN") {
+    return NextResponse.json({ ok: true, redirect: "/admin" });
+  }
+
   return NextResponse.json({ ok: true, redirect: user.professional?.onboardingCompleted ? "/" : "/onboarding" });
 }
