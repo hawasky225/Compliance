@@ -10,6 +10,7 @@ model User {
   id String @id @default(cuid())
   email String @unique
   name String
+  passwordHash String
   role UserRole @default(PROFESSIONAL)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -22,10 +23,13 @@ model Professional {
   user User @relation(fields:[userId], references:[id], onDelete:Cascade)
   professionalId String @unique
   jobTitle String?
+  employer String?
   sector String @default("MINING")
   country String?
   city String?
+  phone String?
   identityVerified Boolean @default(false)
+  onboardingCompleted Boolean @default(false)
   enrollments Enrollment[]
   certifications Certification[]
   results AssessmentResult[]
